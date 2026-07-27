@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>9451b802-3df5-4c05-9aa7-03a16333651d</UserSecretsId>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="zeronineProject.Core\**\*.cs" />
+		<Compile Remove="zeronineProject.Infrastructure\**\*.cs" />
+
+		<Content Remove="zeronineProject.Core\**\*" />
+		<Content Remove="zeronineProject.Infrastructure\**\*" />
+
+		<None Remove="zeronineProject.Core\**\*" />
+		<None Remove="zeronineProject.Infrastructure\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="zeronineProject.Core\zeronineProject.Core.csproj" />
+	  <ProjectReference Include="zeronineProject.Infrastructure\zeronineProject.Infrastructure.csproj" />
+	</ItemGroup>
+
+</Project>

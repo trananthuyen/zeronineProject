@@ -1,0 +1,268 @@
+﻿<style>
+    .price-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 16px;
+        margin-top: 12px;
+        background: #fafafa;
+    }
+
+    .price-value {
+        font-size: 1.4em;
+        color: #2196F3;
+        transition: all 0.25s ease;
+    }
+
+    .price-value.price-up {
+        color: #2e7d32;
+        transform: scale(1.04);
+    }
+
+    .price-value.price-down {
+        color: #c62828;
+        transform: scale(1.04);
+    }
+
+    .history-panel {
+        margin-top: 16px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 12px 16px;
+        background: #fff;
+    }
+
+    .history-panel ul {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0 0;
+    }
+
+    .history-panel li {
+        padding: 6px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 0.95em;
+    }
+</style>
+
+<div>
+    <label for="symbol">Cặp tiền:</label>
+
+    <select id="symbol">
+        <option value="BTCUSDT">BTC/USDT</option>
+        <option value="ETHUSDT">ETH/USDT</option>
+        <option value="BNBUSDT">BNB/USDT</option>
+    </select>
+
+
+    <button type="button" onclick="startListening()">
+        Xem giá thời gian thực
+    </button>
+
+    <button type="button" onclick="stopListening()" style="display:none;" id="stopBtn">
+        Dừng
+    </button>
+</div>
+
+<div>
+    <p id="connectionStatus" style="color: red;">
+        Trạng thái: <strong id="statusText">Chưa kết nối</strong>
+    </p>
+</div>
+
+<div class="price-card">
+    <p>
+        Cặp tiền:
+        <strong id="pairSymbol">---</strong>
+    </p>
+
+    <p>
+        Giá hiện tại:
+        <strong id="pairPrice" class="price-value">---</strong>
+    </p>
+
+    <p>
+        Khối lượng giao dịch:
+        <strong id="pairQuantity">---</strong>
+    </p>
+
+    <p>
+        Thời gian:
+        <strong id="tradeTime">---</strong>
+    </p>
+</div>
+
+
+
+<div class="history-panel">
+    <h3>Lịch sử giá</h3>
+    <ul id="priceHistory">
+        <li>Chưa có dữ liệu</li>
+    </ul>
+</div>
+
+<p id="errorMessage" style="color: red;"></p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+<script>
+    let connection = null;
+    let selectedSymbol = null;
+    let pollTimer = null;
+    let lastDisplayedPrice = null;
+    let priceHistory = [];
+
+    async function startListening() {
+        selectedSymbol = document.getElementById("symbol").value.toUpperCase();
+        const errorElement = document.getElementById("errorMessage");
+        errorElement.textContent = "";
+        resetPriceState();
+
+        if (connection) {
+            await connection.stop();
+        }
+
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl("/cryptoHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceivePrice", (data) => {
+            
+            console.log(data.s)
+            console.log(data.p)
+            
+            if (data.s === selectedSymbol) {
+                updatePriceDisplay(data);
+            }
+        });
+
+        connection.onreconnecting(() => {
+            updateStatus("Đang kết nối lại...", "orange");
+        });
+
+        connection.onreconnected(() => {
+            updateStatus("Đã kết nối", "green");
+        });
+
+        connection.onclose(() => {
+            updateStatus("Ngắt kết nối", "red");
+        });
+
+        try {
+            await connection.start();
+            updateStatus("Đã kết nối", "green");
+            document.getElementById("stopBtn").style.display = "inline-block";
+            document.getElementById("symbol").disabled = true;
+            document.querySelector("button").style.display = "none";
+            updatePriceDisplay(data);
+            
+        } catch (err) {
+            updateStatus("Lỗi kết nối", "red");
+            errorElement.textContent = "Không thể kết nối đến server: " + err;
+        }
+    }
+
+    function stopListening() {
+        if (connection) {
+            connection.stop();
+        }
+
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+
+        updateStatus("Chưa kết nối", "red");
+        document.getElementById("stopBtn").style.display = "none";
+        document.getElementById("symbol").disabled = false;
+        document.querySelector("button").style.display = "inline-block";
+    }
+
+    
+
+    function updatePriceDisplay(data) {
+        const priceElement = document.getElementById("pairPrice");
+        const priceValue = Number(data.p);
+
+        if (Number.isNaN(priceValue)) {
+            return;
+        }
+
+        if (lastDisplayedPrice === null) {
+            lastDisplayedPrice = priceValue;
+            priceElement.classList.remove("price-up", "price-down");
+        } else if (priceValue > lastDisplayedPrice) {
+            priceElement.classList.remove("price-down");
+            priceElement.classList.add("price-up");
+            lastDisplayedPrice = priceValue;
+        } else if (priceValue < lastDisplayedPrice) {
+            priceElement.classList.remove("price-up");
+            priceElement.classList.add("price-down");
+            lastDisplayedPrice = priceValue;
+        } else {
+            return;
+        }
+
+        document.getElementById("pairSymbol").textContent = data.s;
+        priceElement.textContent = formatPrice(priceValue);
+        document.getElementById("pairQuantity").textContent = Number(data.q || 0).toLocaleString("vi-VN", { maximumFractionDigits: 8 });
+        document.getElementById("tradeTime").textContent = new Date(data.tradeTime).toLocaleString("vi-VN");
+
+        priceHistory.unshift({
+            time: data.tradeTime,
+            price: priceValue
+        });
+        priceHistory = priceHistory.slice(0, 10);
+        renderPriceHistory();
+    }
+
+    function resetPriceState() {
+        lastDisplayedPrice = null;
+        priceHistory = [];
+        renderPriceHistory();
+        document.getElementById("pairSymbol").textContent = "---";
+        document.getElementById("pairPrice").textContent = "---";
+        document.getElementById("pairQuantity").textContent = "---";
+        document.getElementById("tradeTime").textContent = "---";
+        document.getElementById("pairPrice").classList.remove("price-up", "price-down");
+    }
+
+    function renderPriceHistory() {
+        const list = document.getElementById("priceHistory");
+        if (priceHistory.length === 0) {
+            list.innerHTML = "<li>Chưa có dữ liệu</li>";
+            return;
+        }
+
+        list.innerHTML = priceHistory.map((item) => {
+            return `<li>${new Date(item.time).toLocaleString("vi-VN")} — ${formatPrice(item.price)}</li>`;
+        }).join("");
+    }
+
+    function updateStatus(text, color) {
+        const statusElement = document.getElementById("statusText");
+        const connectionStatus = document.getElementById("connectionStatus");
+        statusElement.textContent = text;
+        connectionStatus.style.color = color;
+    }
+
+    function formatPrice(price) {
+        const number = Number(price);
+
+        if (Number.isNaN(number)) {
+            return price;
+        }
+
+        return new Intl.NumberFormat("vi-VN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8
+        }).format(number) + " USDT";
+    }
+
+    // Dừng kết nối khi người dùng rời trang
+    window.addEventListener("beforeunload", () => {
+        if (connection) {
+            connection.stop();
+        }
+    });
+</script>
