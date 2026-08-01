@@ -1,121 +1,255 @@
 ﻿<style>
+    .price-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+    }
+
     .price-card {
         border: 1px solid #ddd;
         border-radius: 10px;
         padding: 16px;
-        margin-top: 12px;
         background: #fafafa;
     }
 
     .price-value {
         font-size: 1.4em;
-        color: #2196F3;
-        transition: all 0.25s ease;
+        color: #2196f3;
+        display: inline-block;
+        transition: color 0.25s ease, transform 0.25s ease;
     }
 
-    .price-value.price-up {
-        color: #2e7d32;
-        transform: scale(1.04);
-    }
+        .price-value.price-up {
+            color: #2e7d32;
+            transform: scale(1.04);
+        }
 
-    .price-value.price-down {
-        color: #c62828;
-        transform: scale(1.04);
-    }
+        .price-value.price-down {
+            color: #c62828;
+            transform: scale(1.04);
+        }
 
     .history-panel {
         margin-top: 16px;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 12px 16px;
-        background: #fff;
+        border-top: 1px solid #ddd;
+        padding-top: 12px;
     }
 
-    .history-panel ul {
-        list-style: none;
-        padding: 0;
-        margin: 8px 0 0;
-    }
+        .history-panel ul {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
+        }
 
-    .history-panel li {
-        padding: 6px 0;
-        border-bottom: 1px solid #eee;
-        font-size: 0.95em;
-    }
+        .history-panel li {
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95em;
+        }
 </style>
 
 <div>
-    <label for="symbol">Cặp tiền:</label>
-
-    <select id="symbol">
-        <option value="BTCUSDT">BTC/USDT</option>
-        <option value="ETHUSDT">ETH/USDT</option>
-        <option value="BNBUSDT">BNB/USDT</option>
-    </select>
-
-
-    <button type="button" onclick="startListening()">
+    <button type="button" id="startBtn">
         Xem giá thời gian thực
     </button>
 
-    <button type="button" onclick="stopListening()" style="display:none;" id="stopBtn">
+    <button type="button"
+            id="stopBtn"
+            style="display:none;">
         Dừng
     </button>
 </div>
 
-<div>
-    <p id="connectionStatus" style="color: red;">
-        Trạng thái: <strong id="statusText">Chưa kết nối</strong>
-    </p>
+<p id="connectionStatus" style="color:red;">
+    Trạng thái:
+    <strong id="statusText">Chưa kết nối</strong>
+</p>
+
+<div id="priceContainer" class="price-grid">
+    <div class="price-card" data-symbol="BTCUSDT">
+        <h3>BTC/USDT</h3>
+
+        <p>
+            Giá:
+            <strong id="price-BTCUSDT"
+                    class="price-value">
+                ---
+            </strong>
+        </p>
+
+        <p>
+            Khối lượng:
+            <strong id="quantity-BTCUSDT">---</strong>
+        </p>
+
+        <p>
+            Thời gian:
+            <strong id="time-BTCUSDT">---</strong>
+        </p>
+
+        <p>
+            RSI (15m):
+            <strong id="rsi-BTCUSDT-15m"></strong>
+        </p>
+
+        <p>
+            RSI (1h):
+            <strong id="rsi-BTCUSDT-1h"></strong>
+        </p>
+
+        <p>
+            RSI (4h):
+            <strong id="rsi-BTCUSDT-4h"></strong>
+        </p>
+
+        <p>
+            RSI (1d):
+            <strong id="rsi-BTCUSDT-1d"></strong>
+        </p>
+
+        <div class="history-panel">
+            <h4>Lịch sử giá</h4>
+            <ul id="history-BTCUSDT">
+                <li>Chưa có dữ liệu</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="price-card" data-symbol="ETHUSDT">
+        <h3>ETH/USDT</h3>
+
+        <p>
+            Giá:
+            <strong id="price-ETHUSDT"
+                    class="price-value">
+                ---
+            </strong>
+        </p>
+
+        <p>
+            Khối lượng:
+            <strong id="quantity-ETHUSDT">---</strong>
+        </p>
+
+        <p>
+            Thời gian:
+            <strong id="time-ETHUSDT">---</strong>
+        </p>
+
+        <p>
+            RSI (15m):
+            <strong id="rsi-ETHUSDT-15m"></strong>
+        </p>
+
+        <p>
+            RSI (1h):
+            <strong id="rsi-ETHUSDT-1h"></strong>
+        </p>
+
+        <p>
+            RSI (4h):
+            <strong id="rsi-ETHUSDT-4h"></strong>
+        </p>
+
+        <p>
+            RSI (1d):
+            <strong id="rsi-ETHUSDT-1d"></strong>
+        </p>
+
+        <div class="history-panel">
+            <h4>Lịch sử giá</h4>
+            <ul id="history-ETHUSDT">
+                <li>Chưa có dữ liệu</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="price-card" data-symbol="BNBUSDT">
+        <h3>BNB/USDT</h3>
+
+        <p>
+            Giá:
+            <strong id="price-BNBUSDT"
+                    class="price-value">
+                ---
+            </strong>
+        </p>
+
+        <p>
+            Khối lượng:
+            <strong id="quantity-BNBUSDT">---</strong>
+        </p>
+
+        <p>
+            Thời gian:
+            <strong id="time-BNBUSDT">---</strong>
+        </p>
+
+        <p>
+            RSI (15m):
+            <strong id="rsi-BNBUSDT-15m"></strong>
+        </p>
+
+        <p>
+            RSI (1h):
+            <strong id="rsi-BNBUSDT-1h"></strong>
+        </p>
+
+        <p>
+            RSI (4h):
+            <strong id="rsi-BNBUSDT-4h"></strong>
+        </p>
+
+        <p>
+            RSI (1d):
+            <strong id="rsi-BNBUSDT-1d"></strong>
+        </p>
+
+        <div class="history-panel">
+            <h4>Lịch sử giá</h4>
+            <ul id="history-BNBUSDT">
+                <li>Chưa có dữ liệu</li>
+            </ul>
+        </div>
+    </div>
 </div>
 
-<div class="price-card">
-    <p>
-        Cặp tiền:
-        <strong id="pairSymbol">---</strong>
-    </p>
-
-    <p>
-        Giá hiện tại:
-        <strong id="pairPrice" class="price-value">---</strong>
-    </p>
-
-    <p>
-        Khối lượng giao dịch:
-        <strong id="pairQuantity">---</strong>
-    </p>
-
-    <p>
-        Thời gian:
-        <strong id="tradeTime">---</strong>
-    </p>
-</div>
-
-
-
-<div class="history-panel">
-    <h3>Lịch sử giá</h3>
-    <ul id="priceHistory">
-        <li>Chưa có dữ liệu</li>
-    </ul>
-</div>
-
-<p id="errorMessage" style="color: red;"></p>
+<p id="errorMessage" style="color:red;"></p>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
 <script>
+    const symbols = [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT"
+    ];
+
     let connection = null;
-    let selectedSymbol = null;
-    let pollTimer = null;
-    let lastDisplayedPrice = null;
-    let priceHistory = [];
+
+    const lastPrices = {};
+    const priceHistories = {};
+
+    for (const symbol of symbols) {
+        lastPrices[symbol] = null;
+        priceHistories[symbol] = [];
+    }
+
+    document
+        .getElementById("startBtn")
+        .addEventListener("click", startListening);
+
+    document
+        .getElementById("stopBtn")
+        .addEventListener("click", stopListening);
 
     async function startListening() {
-        selectedSymbol = document.getElementById("symbol").value.toUpperCase();
-        const errorElement = document.getElementById("errorMessage");
+        const errorElement =
+            document.getElementById("errorMessage");
+
         errorElement.textContent = "";
-        resetPriceState();
+        resetAllPriceStates();
 
         if (connection) {
             await connection.stop();
@@ -126,124 +260,307 @@
             .withAutomaticReconnect()
             .build();
 
-        connection.on("ReceivePrice", (data) => {
-            
-            console.log(data.s)
-            console.log(data.p)
-            
-            if (data.s === selectedSymbol) {
-                updatePriceDisplay(data);
+        connection.on("ReceivePrice", data => {
+            /*
+             * Vì C# sử dụng các property:
+             * Symbol, Price, Quantity, TradeTime
+             *
+             * SignalR mặc định chuyển thành:
+             * symbol, price, quantity, tradeTime
+             */
+            console.log(data);
+
+            const symbol =
+                data.s?.toUpperCase();
+
+            if (!symbol || !symbols.includes(symbol)) {
+                return;
             }
+
+            updatePriceDisplay(symbol, data);
         });
 
         connection.onreconnecting(() => {
-            updateStatus("Đang kết nối lại...", "orange");
+            updateStatus(
+                "Đang kết nối lại...",
+                "orange"
+            );
         });
 
         connection.onreconnected(() => {
-            updateStatus("Đã kết nối", "green");
+            updateStatus(
+                "Đã kết nối",
+                "green"
+            );
         });
 
         connection.onclose(() => {
-            updateStatus("Ngắt kết nối", "red");
+            updateStatus(
+                "Ngắt kết nối",
+                "red"
+            );
+
+            updateButtons(false);
         });
 
         try {
             await connection.start();
-            updateStatus("Đã kết nối", "green");
-            document.getElementById("stopBtn").style.display = "inline-block";
-            document.getElementById("symbol").disabled = true;
-            document.querySelector("button").style.display = "none";
-            updatePriceDisplay(data);
-            
-        } catch (err) {
-            updateStatus("Lỗi kết nối", "red");
-            errorElement.textContent = "Không thể kết nối đến server: " + err;
+
+            updateStatus(
+                "Đã kết nối",
+                "green"
+            );
+
+            updateButtons(true);
+        } catch (error) {
+            updateStatus(
+                "Lỗi kết nối",
+                "red"
+            );
+
+            errorElement.textContent =
+                "Không thể kết nối đến server: " +
+                error;
         }
     }
 
-    function stopListening() {
+    async function stopListening() {
         if (connection) {
-            connection.stop();
+            await connection.stop();
+            connection = null;
         }
 
-        if (pollTimer) {
-            clearInterval(pollTimer);
-            pollTimer = null;
-        }
+        updateStatus(
+            "Chưa kết nối",
+            "red"
+        );
 
-        updateStatus("Chưa kết nối", "red");
-        document.getElementById("stopBtn").style.display = "none";
-        document.getElementById("symbol").disabled = false;
-        document.querySelector("button").style.display = "inline-block";
+        updateButtons(false);
     }
 
-    
+    function updatePriceDisplay(symbol, data) {
+        const priceElement =
+            document.getElementById(
+                `price-${symbol}`
+            );
 
-    function updatePriceDisplay(data) {
-        const priceElement = document.getElementById("pairPrice");
+        const quantityElement =
+            document.getElementById(
+                `quantity-${symbol}`
+            );
+
+        const timeElement =
+            document.getElementById(
+                `time-${symbol}`
+            );
+
+        if (
+            !priceElement ||
+            !quantityElement ||
+            !timeElement
+        ) {
+            return;
+        }
+
         const priceValue = Number(data.p);
+        const quantityValue =
+            Number(data.q ?? 0);
 
         if (Number.isNaN(priceValue)) {
             return;
         }
 
-        if (lastDisplayedPrice === null) {
-            lastDisplayedPrice = priceValue;
-            priceElement.classList.remove("price-up", "price-down");
-        } else if (priceValue > lastDisplayedPrice) {
-            priceElement.classList.remove("price-down");
-            priceElement.classList.add("price-up");
-            lastDisplayedPrice = priceValue;
-        } else if (priceValue < lastDisplayedPrice) {
-            priceElement.classList.remove("price-up");
-            priceElement.classList.add("price-down");
-            lastDisplayedPrice = priceValue;
-        } else {
-            return;
+        updatePriceDirection(
+            symbol,
+            priceValue,
+            priceElement
+        );
+
+        priceElement.textContent =
+            formatPrice(priceValue);
+
+        quantityElement.textContent =
+            quantityValue.toLocaleString(
+                "vi-VN",
+                {
+                    maximumFractionDigits: 8
+                }
+            );
+
+        const tradeTime =
+            getTradeDate(data.tradeTime);
+
+        timeElement.textContent =
+            tradeTime.toLocaleString("vi-VN");
+
+        addPriceHistory(
+            symbol,
+            priceValue,
+            tradeTime
+        );
+    }
+
+    function updatePriceDirection(
+        symbol,
+        newPrice,
+        priceElement
+    ) {
+        const previousPrice =
+            lastPrices[symbol];
+
+        priceElement.classList.remove(
+            "price-up",
+            "price-down"
+        );
+
+        if (previousPrice !== null) {
+            if (newPrice > previousPrice) {
+                priceElement.classList.add(
+                    "price-up"
+                );
+            } else if (newPrice < previousPrice) {
+                priceElement.classList.add(
+                    "price-down"
+                );
+            }
         }
 
-        document.getElementById("pairSymbol").textContent = data.s;
-        priceElement.textContent = formatPrice(priceValue);
-        document.getElementById("pairQuantity").textContent = Number(data.q || 0).toLocaleString("vi-VN", { maximumFractionDigits: 8 });
-        document.getElementById("tradeTime").textContent = new Date(data.tradeTime).toLocaleString("vi-VN");
+        lastPrices[symbol] = newPrice;
+    }
 
-        priceHistory.unshift({
-            time: data.tradeTime,
-            price: priceValue
+    function addPriceHistory(
+        symbol,
+        price,
+        time
+    ) {
+        priceHistories[symbol].unshift({
+            price,
+            time
         });
-        priceHistory = priceHistory.slice(0, 10);
-        renderPriceHistory();
+
+        priceHistories[symbol] =
+            priceHistories[symbol].slice(0, 10);
+
+        renderPriceHistory(symbol);
     }
 
-    function resetPriceState() {
-        lastDisplayedPrice = null;
-        priceHistory = [];
-        renderPriceHistory();
-        document.getElementById("pairSymbol").textContent = "---";
-        document.getElementById("pairPrice").textContent = "---";
-        document.getElementById("pairQuantity").textContent = "---";
-        document.getElementById("tradeTime").textContent = "---";
-        document.getElementById("pairPrice").classList.remove("price-up", "price-down");
-    }
+    function renderPriceHistory(symbol) {
+        const list =
+            document.getElementById(
+                `history-${symbol}`
+            );
 
-    function renderPriceHistory() {
-        const list = document.getElementById("priceHistory");
-        if (priceHistory.length === 0) {
-            list.innerHTML = "<li>Chưa có dữ liệu</li>";
+        const history =
+            priceHistories[symbol];
+
+        if (!list) {
             return;
         }
 
-        list.innerHTML = priceHistory.map((item) => {
-            return `<li>${new Date(item.time).toLocaleString("vi-VN")} — ${formatPrice(item.price)}</li>`;
-        }).join("");
+        if (history.length === 0) {
+            list.innerHTML =
+                "<li>Chưa có dữ liệu</li>";
+
+            return;
+        }
+
+        list.innerHTML = history
+            .map(item => {
+                return `
+                    <li>
+                        ${item.time.toLocaleString("vi-VN")}
+                        —
+                        ${formatPrice(item.price)}
+                    </li>
+                `;
+            })
+            .join("");
+    }
+
+    function resetAllPriceStates() {
+        for (const symbol of symbols) {
+            lastPrices[symbol] = null;
+            priceHistories[symbol] = [];
+
+            const priceElement =
+                document.getElementById(
+                    `price-${symbol}`
+                );
+
+            const quantityElement =
+                document.getElementById(
+                    `quantity-${symbol}`
+                );
+
+            const timeElement =
+                document.getElementById(
+                    `time-${symbol}`
+                );
+
+            if (priceElement) {
+                priceElement.textContent = "---";
+
+                priceElement.classList.remove(
+                    "price-up",
+                    "price-down"
+                );
+            }
+
+            if (quantityElement) {
+                quantityElement.textContent = "---";
+            }
+
+            if (timeElement) {
+                timeElement.textContent = "---";
+            }
+
+            renderPriceHistory(symbol);
+        }
+    }
+
+    function getTradeDate(tradeTime) {
+        /*
+         * Binance gửi Unix timestamp
+         * theo milliseconds.
+         */
+        const timestamp = Number(tradeTime);
+
+        if (Number.isNaN(timestamp)) {
+            return new Date();
+        }
+
+        return new Date(timestamp);
     }
 
     function updateStatus(text, color) {
-        const statusElement = document.getElementById("statusText");
-        const connectionStatus = document.getElementById("connectionStatus");
+        const statusElement =
+            document.getElementById(
+                "statusText"
+            );
+
+        const connectionStatus =
+            document.getElementById(
+                "connectionStatus"
+            );
+
         statusElement.textContent = text;
         connectionStatus.style.color = color;
+    }
+
+    function updateButtons(isListening) {
+        document.getElementById(
+            "startBtn"
+        ).style.display =
+            isListening
+                ? "none"
+                : "inline-block";
+
+        document.getElementById(
+            "stopBtn"
+        ).style.display =
+            isListening
+                ? "inline-block"
+                : "none";
     }
 
     function formatPrice(price) {
@@ -253,16 +570,129 @@
             return price;
         }
 
-        return new Intl.NumberFormat("vi-VN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 8
-        }).format(number) + " USDT";
+        return new Intl.NumberFormat(
+            "vi-VN",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 8
+            }
+        ).format(number) + " USDT";
     }
 
-    // Dừng kết nối khi người dùng rời trang
-    window.addEventListener("beforeunload", () => {
-        if (connection) {
-            connection.stop();
+    window.addEventListener(
+        "beforeunload",
+        () => {
+            if (connection) {
+                connection.stop();
+            }
         }
+    );
+
+    async function GetRSI15m(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=15m");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=15m");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=15m");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-15m");
+        const ethElement = document.getElementById("rsi-ETHUSDT-15m");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-15m");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI15m, 5000);
+    }
+
+    async function GetRSI1h(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=1h");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=1h");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=1h");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-1h");
+        const ethElement = document.getElementById("rsi-ETHUSDT-1h");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-1h");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI1h, 5000);
+    }
+
+    async function GetRSI4h(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=4h");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=4h");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=4h");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-4h");
+        const ethElement = document.getElementById("rsi-ETHUSDT-4h");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-4h");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI4h, 5000);
+    }
+
+    async function GetRSI1d(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=1d");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=1d");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=1d");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-1d");
+        const ethElement = document.getElementById("rsi-ETHUSDT-1d");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-1d");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI1d, 5000);
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await startListening();
+        await GetRSI15m();
+        await GetRSI1h();
+        await GetRSI4h();
+        await GetRSI1d();
     });
 </script>

@@ -1,4 +1,5 @@
 using zeronineProject.Core.Entities;
+using zeronineProject.Core.Services;
 using zeronineProject.Infrastructure.ExternalAPICalls.BinanceAPIs;
 using zeronineProject.Infrastructure.ExternalAPICalls.TelegramAPIs;
 using zeronineProject.UI.HostedServices;
@@ -18,7 +19,16 @@ builder.Services.Configure<TelegramOptions>(
 
 builder.Services.AddHttpClient<SendMessage>();
 
-builder.Services.AddScoped<GetTradingPair>();
+builder.Services.AddSingleton<GetStreamPrices>();
+builder.Services.AddSingleton<TelegramAlertLimiter>(); //khoi chay 1 vong doi duy nhat de theo doi thoi gian moi lan gui tin toi tele
+
+builder.Services.AddScoped<RSIAnalysisServices>();
+builder.Services.AddScoped<RSICheckServices>();
+builder.Services.AddHttpClient<GetCandles>(client =>
+{
+    client.BaseAddress =
+        new Uri("https://data-api.binance.vision/");
+});
 
 var app = builder.Build();
 
