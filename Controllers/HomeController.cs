@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Threading;
 using zeronineProject.Core.Entities;
@@ -70,6 +71,40 @@ namespace zeronineProject.UI.Controllers
 
 
             return Ok(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Mutersinotification([FromQuery] string symbol, [FromQuery] string interval, [FromQuery] string durationMinutes)
+        {
+            List<Candle> listCandle = await _getCandles.GetCandlesAsync(symbol, interval, 200);
+
+            var result = Math.Round(_rsiAnalysisService.GetRSIAnalysis(listCandle), 2);
+
+            var previousResult = Math.Round(_rsiAnalysisService.GetRSIPreveAnalysis(listCandle), 2);
+
+            string alertType =
+        _rsiCheckServices.RSICheck(
+            symbol,
+            interval,
+            previousResult,
+            result);
+
+            
+                try
+                {
+                    _alertLimiter.MarkAsSent(alertType, durationMinutes);
+                }
+                catch (Exception exception)
+                {
+                    return StatusCode(
+                        StatusCodes.Status502BadGateway,
+                        $"Không thể gửi Telegram: {exception.Message}");
+                }
+            
+
+
+            return Ok(result);
+            
         }
     }
 }

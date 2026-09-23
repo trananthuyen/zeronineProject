@@ -27,9 +27,9 @@ namespace zeronineProject.Core.Services
             return now - lastSendTime >= _interval;
         }
 
-        public void MarkAsSent(string key)
+        public void MarkAsSent(string key, string durationMinutes = "0")
         {
-            _lastSendTimes[key] = DateTime.UtcNow;
+            _lastSendTimes[key] = DateTime.UtcNow.AddMinutes(int.Parse(durationMinutes));
         }
     }
 }
