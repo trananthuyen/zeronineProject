@@ -12,8 +12,12 @@ namespace zeronineProject.Core.Services
         private readonly ConcurrentDictionary<string, DateTime>
         _lastSendTimes = new(StringComparer.OrdinalIgnoreCase);
 
-        private readonly TimeSpan _interval =
-            TimeSpan.FromMinutes(5);
+        private readonly TimeSpan _interval;
+
+        public TelegramAlertLimiter(int intervalMinutes)
+        {
+            _interval = TimeSpan.FromMinutes(intervalMinutes);
+        }
 
         public bool CanSend(string key)
         {
@@ -27,9 +31,10 @@ namespace zeronineProject.Core.Services
             return now - lastSendTime >= _interval;
         }
 
-        public void MarkAsSent(string key, string durationMinutes = "0")
+        public DateTime MarkAsSent(string key, string durationMinutes = "0")
         {
             _lastSendTimes[key] = DateTime.UtcNow.AddMinutes(int.Parse(durationMinutes));
+            return _lastSendTimes[key];
         }
     }
 }
