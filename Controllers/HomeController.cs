@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.WebSockets;
@@ -89,22 +90,23 @@ namespace zeronineProject.UI.Controllers
             previousResult,
             result);
 
-            
-                try
-                {
-                    _alertLimiter.MarkAsSent(alertType, durationMinutes);
-                }
-                catch (Exception exception)
-                {
-                    return StatusCode(
-                        StatusCodes.Status502BadGateway,
-                        $"Không thể gửi Telegram: {exception.Message}");
-                }
-            
+            DateTime muterSiNotificationTime;
+
+            try
+            {
+                muterSiNotificationTime = _alertLimiter.MarkAsSent(alertType, durationMinutes);
+            }
+            catch (Exception exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status502BadGateway,
+                    $"Không thể gửi Telegram: {exception.Message}");
+            }
 
 
-            return Ok(result);
-            
+
+            return Ok(muterSiNotificationTime);
+
         }
     }
 }
