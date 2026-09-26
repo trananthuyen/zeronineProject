@@ -35,26 +35,25 @@
         margin-top: 16px;
         border-top: 1px solid #ddd;
         padding-top: 12px;
-         
     }
 
     .hide {
         display: none;
     }
 
-    
 
-        .history-panel ul {
-            list-style: none;
-            padding: 0;
-            margin: 8px 0 0;
-        }
 
-        .history-panel li {
-            padding: 6px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 0.95em;
-        }
+    .history-panel ul {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0 0;
+    }
+
+    .history-panel li {
+        padding: 6px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 0.95em;
+    }
 </style>
 
 <div>
@@ -187,7 +186,7 @@
 
         <div class="history-panel">
             <h4>Lịch sử giá</h4>
-            <ul id="history-BTCUSDT">
+            <ul id="history-BTCUSDT" class="history">
                 <li>Chưa có dữ liệu</li>
             </ul>
         </div>
@@ -303,7 +302,7 @@
 
         <div class="history-panel">
             <h4>Lịch sử giá</h4>
-            <ul id="history-ETHUSDT">
+            <ul id="history-ETHUSDT" class="history">
                 <li>Chưa có dữ liệu</li>
             </ul>
         </div>
@@ -415,7 +414,7 @@
 
         <div class="history-panel">
             <h4>Lịch sử giá</h4>
-            <ul id="history-BNBUSDT">
+            <ul id="history-BNBUSDT" class="history">
                 <li>Chưa có dữ liệu</li>
             </ul>
         </div>
@@ -427,125 +426,268 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
 <script>
-        const symbols = [
-            "BTCUSDT",
-            "ETHUSDT",
-            "BNBUSDT"
-        ];
+    const symbols = [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT"
+    ];
 
-        let connection = null;
+    let connection = null;
 
-        const lastPrices = {};
-        const priceHistories = {};
+    const lastPrices = {};
+    const priceHistories = {};
 
-        for (const symbol of symbols) {
-            lastPrices[symbol] = null;
-            priceHistories[symbol] = [];
+    for (const symbol of symbols) {
+        lastPrices[symbol] = null;
+        priceHistories[symbol] = [];
+    }
+
+    document
+        .getElementById("startBtn")
+        .addEventListener("click", startListening);
+
+    document
+        .getElementById("stopBtn")
+        .addEventListener("click", stopListening);
+
+    async function startListening() {
+        const errorElement =
+            document.getElementById("errorMessage");
+
+        errorElement.textContent = "";
+        resetAllPriceStates();
+
+        if (connection) {
+            await connection.stop();
         }
 
-        document
-            .getElementById("startBtn")
-            .addEventListener("click", startListening);
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl("/cryptoHub")
+            .withAutomaticReconnect()
+            .build();
 
-        document
-            .getElementById("stopBtn")
-            .addEventListener("click", stopListening);
+        connection.on("ReceivePrice", data => {
+            /*
+             * Vì C# sử dụng các property:
+             * Symbol, Price, Quantity, TradeTime
+             *
+             * SignalR mặc định chuyển thành:
+             * symbol, price, quantity, tradeTime
+             */
 
-        async function startListening() {
-            const errorElement =
-                document.getElementById("errorMessage");
 
-            errorElement.textContent = "";
-            resetAllPriceStates();
+            const symbol =
+                data.s?.toUpperCase();
 
-            if (connection) {
-                await connection.stop();
+            if (!symbol || !symbols.includes(symbol)) {
+                return;
             }
 
-            connection = new signalR.HubConnectionBuilder()
-                .withUrl("/cryptoHub")
-                .withAutomaticReconnect()
-                .build();
+            updatePriceDisplay(symbol, data);
+        });
 
-            connection.on("ReceivePrice", data => {
-                /*
-                 * Vì C# sử dụng các property:
-                 * Symbol, Price, Quantity, TradeTime
-                 *
-                 * SignalR mặc định chuyển thành:
-                 * symbol, price, quantity, tradeTime
-                 */
-
-
-                const symbol =
-                    data.s?.toUpperCase();
-
-                if (!symbol || !symbols.includes(symbol)) {
-                    return;
-                }
-
-                updatePriceDisplay(symbol, data);
-            });
-
-            connection.onreconnecting(() => {
-                updateStatus(
-                    "Đang kết nối lại...",
-                    "orange"
-                );
-            });
-
-            connection.onreconnected(() => {
-                updateStatus(
-                    "Đã kết nối",
-                    "green"
-                );
-            });
-
-            connection.onclose(() => {
-                updateStatus(
-                    "Ngắt kết nối",
-                    "red"
-                );
-
-                updateButtons(false);
-            });
-
-            try {
-                await connection.start();
-
-                updateStatus(
-                    "Đã kết nối",
-                    "green"
-                );
-
-                updateButtons(true);
-            } catch (error) {
-                updateStatus(
-                    "Lỗi kết nối",
-                    "red"
-                );
-
-                errorElement.textContent =
-                    "Không thể kết nối đến server: " +
-                    error;
-            }
-        }
-
-        async function stopListening() {
-            if (connection) {
-                await connection.stop();
-                connection = null;
-            }
-
+        connection.onreconnecting(() => {
             updateStatus(
-                "Chưa kết nối",
+                "Đang kết nối lại...",
+                "orange"
+            );
+        });
+
+        connection.onreconnected(() => {
+            updateStatus(
+                "Đã kết nối",
+                "green"
+            );
+        });
+
+        connection.onclose(() => {
+            updateStatus(
+                "Ngắt kết nối",
                 "red"
             );
 
             updateButtons(false);
+        });
+
+        try {
+            await connection.start();
+
+            updateStatus(
+                "Đã kết nối",
+                "green"
+            );
+
+            updateButtons(true);
+        } catch (error) {
+            updateStatus(
+                "Lỗi kết nối",
+                "red"
+            );
+
+            errorElement.textContent =
+                "Không thể kết nối đến server: " +
+                error;
+        }
+    }
+
+    async function stopListening() {
+        if (connection) {
+            await connection.stop();
+            connection = null;
         }
 
-        function updatePriceDisplay(symbol, data) {
+        updateStatus(
+            "Chưa kết nối",
+            "red"
+        );
+
+        updateButtons(false);
+    }
+
+    function updatePriceDisplay(symbol, data) {
+        const priceElement =
+            document.getElementById(
+                `price-${symbol}`
+            );
+
+        const quantityElement =
+            document.getElementById(
+                `quantity-${symbol}`
+            );
+
+        const timeElement =
+            document.getElementById(
+                `time-${symbol}`
+            );
+
+        if (
+            !priceElement ||
+            !quantityElement ||
+            !timeElement
+        ) {
+            return;
+        }
+
+        const priceValue = Number(data.p);
+        const quantityValue =
+            Number(data.q ?? 0);
+
+        if (Number.isNaN(priceValue)) {
+            return;
+        }
+
+        updatePriceDirection(
+            symbol,
+            priceValue,
+            priceElement
+        );
+
+        priceElement.textContent =
+            formatPrice(priceValue);
+
+        quantityElement.textContent =
+            quantityValue.toLocaleString(
+                "vi-VN",
+                {
+                    maximumFractionDigits: 8
+                }
+            );
+
+        const tradeTime =
+            getTradeDate(data.tradeTime);
+
+        timeElement.textContent =
+            tradeTime.toLocaleString("vi-VN");
+
+        addPriceHistory(
+            symbol,
+            priceValue,
+            tradeTime
+        );
+    }
+
+    function updatePriceDirection(
+        symbol,
+        newPrice,
+        priceElement
+    ) {
+        const previousPrice =
+            lastPrices[symbol];
+
+        priceElement.classList.remove(
+            "price-up",
+            "price-down"
+        );
+
+        if (previousPrice !== null) {
+            if (newPrice > previousPrice) {
+                priceElement.classList.add(
+                    "price-up"
+                );
+            } else if (newPrice < previousPrice) {
+                priceElement.classList.add(
+                    "price-down"
+                );
+            }
+        }
+
+        lastPrices[symbol] = newPrice;
+    }
+
+    function addPriceHistory(
+        symbol,
+        price,
+        time
+    ) {
+        priceHistories[symbol].unshift({
+            price,
+            time
+        });
+
+        priceHistories[symbol] =
+            priceHistories[symbol].slice(0, 10);
+
+        renderPriceHistory(symbol);
+    }
+
+    function renderPriceHistory(symbol) {
+        const list =
+            document.getElementById(
+                `history-${symbol}`
+            );
+
+        const history =
+            priceHistories[symbol];
+
+        if (!list) {
+            return;
+        }
+
+        if (history.length === 0) {
+            list.innerHTML =
+                "<li>Chưa có dữ liệu</li>";
+
+            return;
+        }
+
+        list.innerHTML = history
+            .map(item => {
+                return `
+                    <li>
+                        ${item.time.toLocaleString("vi-VN")}
+                        —
+                        ${formatPrice(item.price)}
+                    </li>
+                `;
+            })
+            .join("");
+    }
+
+    function resetAllPriceStates() {
+        for (const symbol of symbols) {
+            lastPrices[symbol] = null;
+            priceHistories[symbol] = [];
+
             const priceElement =
                 document.getElementById(
                     `price-${symbol}`
@@ -561,453 +703,289 @@
                     `time-${symbol}`
                 );
 
-            if (
-                !priceElement ||
-                !quantityElement ||
-                !timeElement
-            ) {
-                return;
-            }
+            if (priceElement) {
+                priceElement.textContent = "---";
 
-            const priceValue = Number(data.p);
-            const quantityValue =
-                Number(data.q ?? 0);
-
-            if (Number.isNaN(priceValue)) {
-                return;
-            }
-
-            updatePriceDirection(
-                symbol,
-                priceValue,
-                priceElement
-            );
-
-            priceElement.textContent =
-                formatPrice(priceValue);
-
-            quantityElement.textContent =
-                quantityValue.toLocaleString(
-                    "vi-VN",
-                    {
-                        maximumFractionDigits: 8
-                    }
+                priceElement.classList.remove(
+                    "price-up",
+                    "price-down"
                 );
-
-            const tradeTime =
-                getTradeDate(data.tradeTime);
-
-            timeElement.textContent =
-                tradeTime.toLocaleString("vi-VN");
-
-            addPriceHistory(
-                symbol,
-                priceValue,
-                tradeTime
-            );
-        }
-
-        function updatePriceDirection(
-            symbol,
-            newPrice,
-            priceElement
-        ) {
-            const previousPrice =
-                lastPrices[symbol];
-
-            priceElement.classList.remove(
-                "price-up",
-                "price-down"
-            );
-
-            if (previousPrice !== null) {
-                if (newPrice > previousPrice) {
-                    priceElement.classList.add(
-                        "price-up"
-                    );
-                } else if (newPrice < previousPrice) {
-                    priceElement.classList.add(
-                        "price-down"
-                    );
-                }
             }
 
-            lastPrices[symbol] = newPrice;
-        }
+            if (quantityElement) {
+                quantityElement.textContent = "---";
+            }
 
-        function addPriceHistory(
-            symbol,
-            price,
-            time
-        ) {
-            priceHistories[symbol].unshift({
-                price,
-                time
-            });
-
-            priceHistories[symbol] =
-                priceHistories[symbol].slice(0, 10);
+            if (timeElement) {
+                timeElement.textContent = "---";
+            }
 
             renderPriceHistory(symbol);
         }
+    }
 
-        function renderPriceHistory(symbol) {
-            const list =
-                document.getElementById(
-                    `history-${symbol}`
-                );
+    function getTradeDate(tradeTime) {
+        /*
+         * Binance gửi Unix timestamp
+         * theo milliseconds.
+         */
+        const timestamp = Number(tradeTime);
 
-            const history =
-                priceHistories[symbol];
-
-            if (!list) {
-                return;
-            }
-
-            if (history.length === 0) {
-                list.innerHTML =
-                    "<li>Chưa có dữ liệu</li>";
-
-                return;
-            }
-
-            list.innerHTML = history
-                .map(item => {
-                    return `
-                        <li>
-                            ${item.time.toLocaleString("vi-VN")}
-                            —
-                            ${formatPrice(item.price)}
-                        </li>
-                    `;
-                })
-                .join("");
+        if (Number.isNaN(timestamp)) {
+            return new Date();
         }
 
-        function resetAllPriceStates() {
-            for (const symbol of symbols) {
-                lastPrices[symbol] = null;
-                priceHistories[symbol] = [];
+        return new Date(timestamp);
+    }
 
-                const priceElement =
-                    document.getElementById(
-                        `price-${symbol}`
-                    );
-
-                const quantityElement =
-                    document.getElementById(
-                        `quantity-${symbol}`
-                    );
-
-                const timeElement =
-                    document.getElementById(
-                        `time-${symbol}`
-                    );
-
-                if (priceElement) {
-                    priceElement.textContent = "---";
-
-                    priceElement.classList.remove(
-                        "price-up",
-                        "price-down"
-                    );
-                }
-
-                if (quantityElement) {
-                    quantityElement.textContent = "---";
-                }
-
-                if (timeElement) {
-                    timeElement.textContent = "---";
-                }
-
-                renderPriceHistory(symbol);
-            }
-        }
-
-        function getTradeDate(tradeTime) {
-            /*
-             * Binance gửi Unix timestamp
-             * theo milliseconds.
-             */
-            const timestamp = Number(tradeTime);
-
-            if (Number.isNaN(timestamp)) {
-                return new Date();
-            }
-
-            return new Date(timestamp);
-        }
-
-        function updateStatus(text, color) {
-            const statusElement =
-                document.getElementById(
-                    "statusText"
-                );
-
-            const connectionStatus =
-                document.getElementById(
-                    "connectionStatus"
-                );
-
-            statusElement.textContent = text;
-            connectionStatus.style.color = color;
-        }
-
-        function updateButtons(isListening) {
+    function updateStatus(text, color) {
+        const statusElement =
             document.getElementById(
-                "startBtn"
-            ).style.display =
-                isListening
-                    ? "none"
-                    : "inline-block";
+                "statusText"
+            );
 
+        const connectionStatus =
             document.getElementById(
-                "stopBtn"
-            ).style.display =
-                isListening
-                    ? "inline-block"
-                    : "none";
+                "connectionStatus"
+            );
+
+        statusElement.textContent = text;
+        connectionStatus.style.color = color;
+    }
+
+    function updateButtons(isListening) {
+        document.getElementById(
+            "startBtn"
+        ).style.display =
+            isListening
+                ? "none"
+                : "inline-block";
+
+        document.getElementById(
+            "stopBtn"
+        ).style.display =
+            isListening
+                ? "inline-block"
+                : "none";
+    }
+
+    function formatPrice(price) {
+        const number = Number(price);
+
+        if (Number.isNaN(number)) {
+            return price;
         }
 
-        function formatPrice(price) {
-            const number = Number(price);
-
-            if (Number.isNaN(number)) {
-                return price;
+        return new Intl.NumberFormat(
+            "vi-VN",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 8
             }
+        ).format(number) + " USDT";
+    }
 
-            return new Intl.NumberFormat(
-                "vi-VN",
+    window.addEventListener(
+        "beforeunload",
+        () => {
+            if (connection) {
+                connection.stop();
+            }
+        }
+    );
+
+    async function GetRSI15m(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=15m");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=15m");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=15m");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-15m");
+        const ethElement = document.getElementById("rsi-ETHUSDT-15m");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-15m");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI15m, 5000);
+    }
+
+    async function GetRSI1h(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=1h");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=1h");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=1h");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-1h");
+        const ethElement = document.getElementById("rsi-ETHUSDT-1h");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-1h");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI1h, 5000);
+    }
+
+    async function GetRSI4h(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=4h");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=4h");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=4h");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-4h");
+        const ethElement = document.getElementById("rsi-ETHUSDT-4h");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-4h");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI4h, 5000);
+    }
+
+    async function GetRSI1d(){
+        try {
+        const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=1d");
+        const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=1d");
+        const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=1d");
+
+        const btcdata = await responsebtc.json();
+        const ethdata = await responseeth.json();
+        const bnbdata = await responsebnb.json();
+
+        const btcElement = document.getElementById("rsi-BTCUSDT-1d");
+        const ethElement = document.getElementById("rsi-ETHUSDT-1d");
+        const bnbElement = document.getElementById("rsi-BNBUSDT-1d");
+
+        btcElement.textContent = btcdata;
+        ethElement.textContent = ethdata;
+        bnbElement.textContent = bnbdata;
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    setTimeout(GetRSI1d, 5000);
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await startListening();
+        await GetRSI15m();
+        await GetRSI1h();
+        await GetRSI4h();
+        await GetRSI1d();
+    });
+
+    /* mute alert*/
+
+    async function muteNotification(symbol, interval) {
+        const select =
+            document.getElementById(
+                `mute-duration-${symbol}-${interval}`
+            );
+
+        const durationMinutes =
+            Number(select.value);
+
+        try {
+            const response = await fetch(
+                `/home/mutersinotification` +
+                `?symbol=${encodeURIComponent(symbol)}` +
+                `&interval=${encodeURIComponent(interval)}` +
+                `&durationMinutes=${durationMinutes}`,
                 {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 8
-                }
-            ).format(number) + " USDT";
-        }
-
-        window.addEventListener(
-            "beforeunload",
-            () => {
-                if (connection) {
-                    connection.stop();
-                }
-            }
-        );
-
-        async function GetRSI15m(){
-            try {
-            const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=15m");
-            const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=15m");
-            const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=15m");
-
-            const btcdata = await responsebtc.json();
-            const ethdata = await responseeth.json();
-            const bnbdata = await responsebnb.json();
-
-            const btcElement = document.getElementById("rsi-BTCUSDT-15m");
-            const ethElement = document.getElementById("rsi-ETHUSDT-15m");
-            const bnbElement = document.getElementById("rsi-BNBUSDT-15m");
-
-            btcElement.textContent = btcdata;
-            ethElement.textContent = ethdata;
-            bnbElement.textContent = bnbdata;
-
-        } catch (err) {
-            console.error(err);
-        }
-
-        setTimeout(GetRSI15m, 5000);
-        }
-
-        async function GetRSI1h(){
-            try {
-            const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=1h");
-            const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=1h");
-            const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=1h");
-
-            const btcdata = await responsebtc.json();
-            const ethdata = await responseeth.json();
-            const bnbdata = await responsebnb.json();
-
-            const btcElement = document.getElementById("rsi-BTCUSDT-1h");
-            const ethElement = document.getElementById("rsi-ETHUSDT-1h");
-            const bnbElement = document.getElementById("rsi-BNBUSDT-1h");
-
-            btcElement.textContent = btcdata;
-            ethElement.textContent = ethdata;
-            bnbElement.textContent = bnbdata;
-
-        } catch (err) {
-            console.error(err);
-        }
-
-        setTimeout(GetRSI1h, 5000);
-        }
-
-        async function GetRSI4h(){
-            try {
-            const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=4h");
-            const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=4h");
-            const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=4h");
-
-            const btcdata = await responsebtc.json();
-            const ethdata = await responseeth.json();
-            const bnbdata = await responsebnb.json();
-
-            const btcElement = document.getElementById("rsi-BTCUSDT-4h");
-            const ethElement = document.getElementById("rsi-ETHUSDT-4h");
-            const bnbElement = document.getElementById("rsi-BNBUSDT-4h");
-
-            btcElement.textContent = btcdata;
-            ethElement.textContent = ethdata;
-            bnbElement.textContent = bnbdata;
-
-        } catch (err) {
-            console.error(err);
-        }
-
-        setTimeout(GetRSI4h, 5000);
-        }
-
-        async function GetRSI1d(){
-            try {
-            const responsebtc = await fetch("/home/analysis?symbol=btcusdt&interval=1d");
-            const responseeth = await fetch("/home/analysis?symbol=ethusdt&interval=1d");
-            const responsebnb = await fetch("/home/analysis?symbol=bnbusdt&interval=1d");
-
-            const btcdata = await responsebtc.json();
-            const ethdata = await responseeth.json();
-            const bnbdata = await responsebnb.json();
-
-            const btcElement = document.getElementById("rsi-BTCUSDT-1d");
-            const ethElement = document.getElementById("rsi-ETHUSDT-1d");
-            const bnbElement = document.getElementById("rsi-BNBUSDT-1d");
-
-            btcElement.textContent = btcdata;
-            ethElement.textContent = ethdata;
-            bnbElement.textContent = bnbdata;
-
-        } catch (err) {
-            console.error(err);
-        }
-
-        setTimeout(GetRSI1d, 5000);
-        }
-
-        document.addEventListener("DOMContentLoaded", async () => {
-            await startListening();
-            await GetRSI15m();
-            await GetRSI1h();
-            await GetRSI4h();
-            await GetRSI1d();
-        });
-
-        /* mute alert*/
-
-        async function muteNotification(symbol, interval) {
-            const select =
-                document.getElementById(
-                    `mute-duration-${symbol}-${interval}`
-                );
-
-            const durationMinutes =
-                Number(select.value);
-
-            try {
-                const response = await fetch(
-                    `/home/mutersinotification` +
-                    `?symbol=${encodeURIComponent(symbol)}` +
-                    `&interval=${encodeURIComponent(interval)}` +
-                    `&durationMinutes=${durationMinutes}`,
-                    {
-                        method: "POST"
-                    }
-                );
-
-                if (!response.ok) {
-                    const error = await response.text();
-                    throw new Error(error);
-                }
-
-                const data = await response.json();
-
-                const statusElement =
-                    document.getElementById(
-                        `mute-status-${symbol}-${interval}`
-                    );
-
-                if(durationMinutes === 0){
-                    statusElement.textContent =
-                    "";
-                } else {
-                    statusElement.textContent =
-                    `Đã tắt đến ${formatVietnamTime(data)}`;
-                }
-
-            } catch (error) {
-                console.error(error);
-                alert("Không thể tắt thông báo.");
-            }
-        }
-
-        /*async function unmuteNotification(symbol, interval) {
-            try {
-                const response = await fetch(
-                    `/home/unmute-rsi-notification` +
-                    `?symbol=${encodeURIComponent(symbol)}` +
-                    `&interval=${encodeURIComponent(interval)}`,
-                    {
-                        method: "POST"
-                    }
-                );
-
-                if (!response.ok) {
-                    const error = await response.text();
-                    throw new Error(error);
-                }
-
-                const statusElement =
-                    document.getElementById(
-                        `mute-status-${symbol}-${interval}`
-                    );
-
-                statusElement.textContent =
-                    "Thông báo đang bật";
-            } catch (error) {
-                console.error(error);
-                alert("Không thể bật lại thông báo.");
-            }
-        }*/
-
-        function formatVietnamTime(utcDate) {
-            return new Date(utcDate).toLocaleString(
-                "vi-VN",
-                {
-                    timeZone: "Asia/Ho_Chi_Minh"
+                    method: "POST"
                 }
             );
-        }
 
-        const hideHistoryPanel =
-        document.querySelectorAll(".price-card");
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(error);
+            }
 
-        hideHistoryPanel.forEach(element => {
-            element.addEventListener("click", function () {
+            const data = await response.json();
 
-                let choose = element.getElementsByClassName("history-panel");
+            const statusElement =
+                document.getElementById(
+                    `mute-status-${symbol}-${interval}`
+                );
 
-                if(choose[0].classList.contains("hide")){
-                   choose[0].classList.remove("hide");
-                } else {
-                   choose[0].classList.add("hide");
+            if(durationMinutes === 0){
+                statusElement.textContent =
+                "";
+            } else {
+                statusElement.textContent =
+                `Đã tắt đến ${formatVietnamTime(data)}`;
+
+                //remove statusElement when the time is end
+                const muteUntil = new Date(data);
+                const now = new Date();
+
+                const remainingTime = muteUntil.getTime() - now.getTime();
+
+                if (remainingTime > 0) {
+                   setTimeout(() => {
+                        statusElement.textContent = "";
+                   }, remainingTime);
                 }
-                
+            }
 
+        } catch (error) {
+            console.error(error);
+            alert("Không thể tắt thông báo.");
+        }
+    }
 
-                
-            });
+    function formatVietnamTime(utcDate) {
+        return new Date(utcDate).toLocaleString(
+            "vi-VN",
+            {
+                timeZone: "Asia/Ho_Chi_Minh"
+            }
+        );
+    }
+
+    const hideHistoryPanel =
+    document.querySelectorAll(".history-panel");
+
+    hideHistoryPanel.forEach(element => {
+        element.addEventListener("click", function () {
+
+            let choose = element.getElementsByClassName("history");
+
+            if(choose[0].classList.contains("hide")){
+               choose[0].classList.remove("hide");
+            } else {
+               choose[0].classList.add("hide");
+            }
         });
+    });
 
 </script>
 
